@@ -1,0 +1,131 @@
+#! usr/bin/Rscript
+
+## load the packages
+library(tidyverse)
+library(data.table)
+library(knitr)
+library(broom)
+library(matrixStats)
+
+## Part A. Load sum stats (PMID 25056061; Nature 2014)
+
+#1. read in the data
+sumstat.filename <- "path/to/SCZ/Nature2014/daner_PGC_SCZ52_0513a.hq2.gz"
+SCZ = read_tsv(paste0(sumstat.filename))
+
+#2. select the required columns, rename them 
+SCZ.df = SCZ %>% as.data.frame()%>% 
+  dplyr::select(c("CHR", "BP", "SNP", "OR", "P"))%>%
+  dplyr::rename(c(POS="BP", BETA="OR"))
+
+#3. order by chromosome and position
+SCZ.ord = SCZ.df[order(SCZ.df$CHR, SCZ.df$BP),]
+
+#4. retain only valid rsIDs
+SCZ.eu = SCZ.ord[which(substr(SCZ.ord$SNP,1,2)=='rs'),] #10,172,956 --> 9,272,258
+
+#5. save
+write.table(SCZ.eu, file = 'PGC_SCZ_2014_sumstats.txt', sep = "\t")
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+data=SCZ.eu
+
+## Part B. Create a vector of overlapping and equal-in-size coordinates of DNA seq
+#Here I use the first and the last snp position per chromosome, the length of segments (or the interval) 
+#can be anywhere between 1 to 2 Mbp, the overlap is set at 25%. 
+
+#1. initialize a list to store intVs for each group
+intVs_list <- list()  
+
+#2. loop it over each chromosome
+for (chr in unique(data$CHR)) {
+  first <- min(data$BP[data$CHR == chr], na.rm = TRUE)
+  last <- max(data$BP[data$CHR == chr], na.rm = TRUE)
+  interval <- 2000000
+  overlap <- 500000
+  
+  intVs <- c()  # Create an empty vector for the current group
+  
+  inc <- ceiling((last - first) / (interval - overlap))
+  start <- first
+  
+  for (i in 1:inc) {
+    end <- start + interval
+    intV <- paste(start, end, sep = ':')
+    
+    intVs <- c(intVs, intV)
+    start <- end - overlap
+  }
+  
+  intVs_list[[chr]] <- intVs  # Store intVs for the current group in the list
+}
+
+#3. convert the list of vectors to a list of data frames
+coord_list <- lapply(intVs_list, function(vector) {
+  split_vector <- strsplit(vector, ":")
+  coord_df <- do.call(rbind, lapply(split_vector, function(x) data.frame(seg_start = x[1], seg_end = x[2])))
+  return(coord_df)
+})
+
+#4. rbind all data frames in the list with ID (index)
+coord_df <- do.call(rbind, Map(cbind, index = seq_along(coord_list), coord_list))
+table(coord_df$index) # check the indices match the chromosome number
+
+#5. save
+write.table(coord_df, file = 'coordinates_for_PGC_SCZ_2014_sumstats.txt', sep = "\t")
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+## Part C. Extract information 
+# Here, I use the coordinates calculated in the previous step to extract all the snps in the summary 
+# statistics file, whose position is whithin the intervals/windows/regions. I look in the snps count and also 
+# the avergae Betas per region per chromosome.
+
+#1. create an empty data frame
+result <- data.frame()
+
+2. loop through conditions
+for (chr in unique(data$CHR)){
+  sub.dt <- subset(data, CHR==chr)
+    sub.coord <- subset(coord_df, index==chr)
+    for (j in 1:(nrow(sub.coord) -3)) {
+      spot1 <- as.numeric(sub.coord[j, 2])  # Access value from dataset2
+      spot2 <- as.numeric(sub.coord[j+3, 2])
+      sub.dt_tmp <- sub.dt[which(sub.dt$BP>=spot1 & sub.dt$BP<spot2), ]
+      if (nrow(sub.dt_tmp) >0){
+        snp.counts <- length(sub.dt_tmp$OR)
+        sum.beta.eu<- sum((sub.dt_tmp$OR))/length(sub.dt_tmp$OR)
+        start.pos <- min(sub.dt_tmp$BP)
+        end.pos <- max(sub.dt_tmp$BP)
+        stats <- data.frame(chr, start.pos, end.pos, snp.counts, sum.beta.eu)
+        result <- rbind(result, stats)  
+      }
+    }
+}
+
+#3. check the output
+head(result)
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+## Part D. Plotting
+
+mt.sum=result
+hist(result$snp.counts, main="SNP count")
+dev.off()
+
+hist(result$sum.beta.eu, main="Beta (mean value)")
+
+q.c.o = quantile(result$snp.counts, c(.025,.975))
+
+
+
+
+
+
+
+
+
+
+
+
+
