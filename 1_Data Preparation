@@ -4,12 +4,7 @@
 library(tidyverse)
 library(data.table)
 library(readr)
-library(knitr)
-library(ggpubr)
-library(R.utils)
 library(purrr)
-library(cowplot)
-library(RColorBrewer)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ## A) import data
