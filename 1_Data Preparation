@@ -77,7 +77,7 @@ df.tot = as.data.frame(df.sz.s) #5310784 rsIDs
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 ## D) save the final file
-write.table(df.tot, file = 'Nickie_cri.txt', sep = "\t")
+write.table(df.tot, file = 'sumstats_cri.txt', sep = "\t")
 
 
 
