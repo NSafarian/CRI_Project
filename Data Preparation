@@ -1,0 +1,35 @@
+#! usr/bin/env Rscript
+
+# load the reuired packages
+library(tidyverse)
+library(data.table)
+library(readr)
+library(knitr)
+library(ggpubr)
+library(R.utils)
+library(purrr)
+library(cowplot)
+library(RColorBrewer)
+
+## A) import data
+
+#1. define path to data 
+data_dir <- "~/path/to/summary_stats_data"
+data_list <- list.files(path=data_dir,
+                        pattern="*auto.gz",
+                        full.names = F)
+
+#2. define a read-select function
+read.Fun <- function(data_dir, name){
+  temp.dt1 <-  data.table::fread(data_dir)
+  temp.dt2 <- temp.dt1%>% as.data.frame()
+  temp.dt3 <- temp.dt2%>% dplyr::select(c("CHR","BP", "SNP", "OR", "P"))
+  temp.dt4 <- temp.dt3%>% dplyr::rename(BETA="OR")
+  return(temp.dt4)
+}
+
+#3. loop over the list 
+for (i in 1:length(data_list)){
+  names <- data_list[i]
+  assign(names, read.Fun(data_list[i]))
+}
