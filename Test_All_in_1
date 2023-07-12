@@ -16,7 +16,7 @@ SCZ = read_tsv(paste0(sumstat.filename))
 #2. select the required columns, rename them 
 SCZ.df = SCZ %>% as.data.frame()%>% 
   dplyr::select(c("CHR", "BP", "SNP", "OR", "P"))%>%
-  dplyr::rename(c(POS="BP", BETA="OR"))
+  dplyr::rename(c(BETA="OR"))
 
 #3. order by chromosome and position
 SCZ.ord = SCZ.df[order(SCZ.df$CHR, SCZ.df$BP),]
