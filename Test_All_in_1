@@ -85,7 +85,7 @@ write.table(coord_df, file = 'coordinates_for_PGC_SCZ_2014_sumstats.txt', sep = 
 #1. create an empty data frame
 result <- data.frame()
 
-2. loop through conditions
+#2. loop through conditions
 for (chr in unique(data$CHR)){
   sub.dt <- subset(data, CHR==chr)
     sub.coord <- subset(coord_df, index==chr)
@@ -94,11 +94,11 @@ for (chr in unique(data$CHR)){
       spot2 <- as.numeric(sub.coord[j+3, 2])
       sub.dt_tmp <- sub.dt[which(sub.dt$BP>=spot1 & sub.dt$BP<spot2), ]
       if (nrow(sub.dt_tmp) >0){
-        snp.counts <- length(sub.dt_tmp$OR)
-        sum.beta.eu<- sum((sub.dt_tmp$OR))/length(sub.dt_tmp$OR)
+        snp.counts <- length(sub.dt_tmp$BETA)
+        sum.beta.eu<- sum((sub.dt_tmp$BETA))/length(sub.dt_tmp$BETA)
         start.pos <- min(sub.dt_tmp$BP)
         end.pos <- max(sub.dt_tmp$BP)
-        stats <- data.frame(chr, start.pos, end.pos, snp.counts, sum.beta.eu)
+        stats <- data.frame(chr, start.pos, end.pos, snp.counts, Avg.beta.eu)
         result <- rbind(result, stats)  
       }
     }
