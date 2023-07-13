@@ -112,15 +112,77 @@ write.csv("result", file = 'path/to/A/Folder/Results_counts_beta_perRegion_for_P
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-## Part D. Plotting
 
-mt.sum=result
-hist(result$snp.counts, main="SNP count")
-dev.off()
+# Part D. Visualization
 
-hist(result$sum.beta.eu, main="Beta (mean value)")
+#1. Define a function to calculate all quantiles
+Quantil_Func <- function(x) {
+  quantiles <- quantile(x, probs = seq(0, 1, 1/20)) 
+  
+  Iqr5_95 <- quantiles[20] - quantiles[2]
+  Iqr25_75 <- quantiles[16] - quantiles[6]
+  
+  res <- c(quantiles, Iqr25_75, Iqr5_95)
+  
+  return(res)
+}
 
-q.c.o = quantile(result$snp.counts, c(.025,.975))
+#2. Calculate quantiles for snp.counts
+q_out <- Quantil_Func(result$snp.counts)
+barplot(q_out[1:21])
+
+
+#3. Exclude ouliers (smallest 5% and biggest 5% counts)
+filtr.dt <- result %>% 
+  filter(snp.counts > quantile(snp.counts, 0.05) & snp.counts < quantile(snp.counts, 0.95)) #178 SNPs are removed
+
+                                                                                  
+#4. Calculate the counts zscore
+filtr.dt  <- filtr.dt  %>% 
+  mutate(ZCounts = as.numeric(scale(snp.counts)))
+
+#5. plot
+hist(filtr.dt$ZCounts, xlab="SNP Counts (scaled)", main="SNP Counts (scaled) \n After Filter")
+hist(filtr.dt$snp.counts, xlab="SNP RAW Counts", main="SNP RAW Counts \n After Removing Outliers")
+
+
+#5. How removing outliers affected the pvalues?
+
+#check it on the main data
+model_effects = result %>% 
+  do(tidy(lm(Avg.beta ~ snp.counts,  data = .))) %>%
+  mutate(padj = p.adjust(`p.value`, method = 'BH')) 
+
+print(model_effects)
+# term        estimate     std.error statistic p.value  padj
+# <chr>          <dbl>         <dbl>     <dbl>   <dbl> <dbl>
+# 1 (Intercept)  1.00e+0 0.000112       8974.      0     0    
+# 2 snp.counts  -2.11e-9 0.00000000718    -0.294   0.768 0.768
+#######################################
+# check it on the filtered data
+model_effects2 = filtr.dt %>% 
+  do(tidy(lm(Avg.beta ~ snp.counts,  data = .))) %>%
+  mutate(padj = p.adjust(`p.value`, method = 'BH')) 
+
+print(model_effects2)
+
+# term             estimate     std.error statistic    p.value       padj
+# <chr>               <dbl>         <dbl>     <dbl>      <dbl>      <dbl>
+# 1 (Intercept)  1.00         0.0000759      13194.   0          0         
+# 2 snp.counts  -0.0000000223 0.00000000497     -4.49 0.00000770 0.00000770
+
+# removing outliers (windows with extrem low or high SNP counts),
+# does affect on the significance of the correlation of beta and counts. 
+
+library(ggpubr) # to add fitted regression equation inside
+ggplot(data=filtr.dt, aes(x = snp.counts, y = Avg.beta)) + 
+  geom_point() +
+  stat_smooth(method = "lm", se=FALSE) +
+  stat_regline_equation(label.x.npc = "center")+
+  theme_bw()
+
+###############################################################################################################################################
+
 
 
 
