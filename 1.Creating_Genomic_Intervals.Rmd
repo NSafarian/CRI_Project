@@ -42,7 +42,7 @@ if (!dir.exists(results_dir)) {
 In the same place you put this .Rmd file, you should now have three new empty folders called data, plots, and results!
 
 
-##1.2. Download the summary statistics data 
+## **1.2. Download the summary statistics data**
 *for the purpose of presentation, I have used the the Psychiatric Genomics Consortium (PGC) summary statistics*
 *for schizophrenia published on **2014**:*
 *<pubMedIDlink: https://pubmed.ncbi.nlm.nih.gov/25056061; download link: https://doi.org/10.6084/m9.figshare.14672163>.*
@@ -50,7 +50,8 @@ In the same place you put this .Rmd file, you should now have three new empty fo
 Create a subfolder in the newly created **data** folder and named it **SCZ2014**. Now, put the downloaded summary stats in this subfolder. 
 If later on you decided to download other summary statas files, you can keep them organized in separate subfolders.
 
-##1.3.  Define the file path to the data directory
+
+## **1.3.  Define the file path to the data directory**
 ```{r]
 # Replace with the path of the folder the files will be in
 data_dir <- file.path("data", "SCZ2014")
@@ -59,20 +60,21 @@ data_dir <- file.path("data", "SCZ2014")
 # inside directory saved as `data_dir`
 # Replace with the path to your dataset file
 data_file <- file.path(data_dir, "daner_PGC_SCZ52_0513a.hq2.gz")
+
 ```{r}
 
     
-##1.4. Import and set up data
+## **1.4. Import and set up data**
 ```{r}
 SCZ = readr::read_tsv(data_file)
 
-#select and rename columns (if necessary), and retain only valid rsIDs
+# Select and rename columns (if necessary), and retain only valid rsIDs
 SCZ.df = SCZ %>% as.data.frame()%>% 
   dplyr::select(c("CHR", "BP", "SNP", "OR", "P"))%>%
   dplyr::rename(c(BETA="OR"))%>%
   dplyr::filter(str_detect(SNP, 'rs'))
 
-#order by chromosome and position
+# Order by chromosome and position
 data = SCZ.df[order(SCZ.df$CHR, SCZ.df$BP),]
 
 ```{r}
@@ -82,10 +84,10 @@ Note: here, the first and the last snp position per chromosome are set as start 
 The length of segments (or the interval) is set to 1Mbp, the overlap is set at 50%. 
 
 ```{r}
-#2.1. initialize a list to store intVs for each group
+# 2.1. initialize a list to store intVs for each group
 intVs_list <- list()  
 
-#2.2. loop it over each chromosome
+# 2.2. loop it over each chromosome
 for (chr in unique(data$CHR)) {
   first <- min(data$BP[data$CHR == chr], na.rm = TRUE)
   last <- max(data$BP[data$CHR == chr], na.rm = TRUE)
@@ -108,18 +110,18 @@ for (chr in unique(data$CHR)) {
   intVs_list[[chr]] <- intVs  # Store intVs for the current group in the list
 }
 
-#2.3. convert the list of vectors to a list of data frames
+# 2.3. convert the list of vectors to a list of data frames
 coord_list <- lapply(intVs_list, function(vector) {
   split_vector <- strsplit(vector, ":")
   coord_df <- do.call(rbind, lapply(split_vector, function(x) data.frame(seg_start = x[1], seg_end = x[2])))
   return(coord_df)
 })
 
-#2.4. rbind all data frames in the list with ID (index)
+# 2.4. rbind all data frames in the list with ID (index)
 coord_df <- do.call(rbind, Map(cbind, index = seq_along(coord_list), coord_list))
 table(coord_df$index) # check the indices match the chromosome number
 
-#2.5. save
+# 2.5. save
 write.table(coord_df, file = file.path("results",'coordinates_for_PGC_SCZ_2014_sumstats.txt', sep = "\t"))
                       
 ```{r}
@@ -128,10 +130,10 @@ Now you have a data frame containing coorinates columns for start and end of arb
 ## **3. Explore the results**                   
 Here, the number of snps and the average beta values per region per chromosome is calculated. 
 ```{r}
-#3.1. create an empty data frame
+# 3.1. create an empty data frame
 result <- data.frame()
 
-#3.2. loop through conditions
+# 3.2. loop through conditions
 for (chr in unique(data$CHR)){
   sub.dt <- subset(data, CHR==chr)
     sub.coord <- subset(coord_df, index==chr)
@@ -150,10 +152,10 @@ for (chr in unique(data$CHR)){
     }
 }
 
-#3.3. check the output
+# 3.3. check the output
 head(result)
 
-#3.4. save
+# 3.4. save
 write.csv("result", file = file.path("results", 'CRIResults_for_PGC_SCZ_2014_sumstats.txt', )
 ```{r}
 
